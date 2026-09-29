@@ -113,4 +113,43 @@ public class AnalyticsController {
     ) {
         return analyticsRepository.getCuisines(start, end, city, cuisine, restaurant);
     }
+
+    /**
+     * GET /api/customers/spending -> [{"bucket":"","customers":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/customers/spending")
+    public java.util.List<com.foodanalytics.dto.CustomerSpendingResponse> customerSpending(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getCustomerSpending(start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/customers/repeat-vs-new -> [{"type":"New","customers":0},{"type":"Repeat","customers":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/customers/repeat-vs-new")
+    public java.util.List<com.foodanalytics.dto.CustomerTypeResponse> repeatVsNew(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getRepeatVsNew(start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/customers/segments -> {"summary":[{"segment":"","customers":0,"avgSpend":0}],"points":[{"customerId":0,"totalSpend":0,"orderCount":0,"segment":""}]}
+     * NOT filter-aware.
+     */
+    @GetMapping("/customers/segments")
+    public com.foodanalytics.dto.CustomerSegmentsResponse customerSegments() {
+        return analyticsRepository.getCustomerSegments();
+    }
 }

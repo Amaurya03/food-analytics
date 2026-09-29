@@ -4,38 +4,507 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Customers | Food Analytics</title>
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <!-- Navigation Bar Container -->
   <div id="navbar-container"></div>
 
-  <main class="container-fluid px-lg-4 py-5 flex-grow-1">
-    <div class="empty-state py-5 my-5">
-      <div class="empty-icon text-primary">
-        <i class="bi bi-people"></i>
+  <!-- Main Container -->
+  <main class="container-fluid px-lg-4 py-4 flex-grow-1">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Customer Insights & Segmentation</h1>
+        <p class="text-muted small mb-0">Patron spending behavior, loyalty cohorts, and behavioral clustering</p>
       </div>
-      <h2 class="fw-bold mb-2">Customers</h2>
-      <p class="text-muted fs-5 mb-0">Coming soon</p>
+    </div>
+
+    <!-- Error Alert Container -->
+    <div id="error-container"></div>
+
+    <!-- Filter Bar Container -->
+    <div id="filter-container"></div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loading-spinner" class="loading-overlay d-none">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading customer data...</span>
+      </div>
+      <p class="mt-3 fw-medium">Loading customer metrics...</p>
+    </div>
+
+    <!-- Section 1: Filter-Aware Customer Dynamics -->
+    <div id="filtered-customer-content">
+      <!-- Empty State for Filtered Data -->
+      <div id="empty-state" class="empty-state d-none">
+        <div class="empty-icon">
+          <i class="bi bi-person-x"></i>
+        </div>
+        <h4 class="fw-bold">No customer activity found</h4>
+        <p class="text-muted mb-0">No customer orders match your selected filter criteria. Try adjusting dates or filters.</p>
+      </div>
+
+      <div id="filtered-charts-row" class="row g-4 mb-5">
+        <!-- Customer Spending Distribution (Bar Chart) -->
+        <div class="col-12 col-lg-7">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Customer Spending Distribution</h2>
+                <span class="text-muted small">Number of customers grouped by total spend bracket (INR)</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 330px;">
+              <canvas id="spendingChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- New vs Repeat Customers (Pie/Donut Chart) -->
+        <div class="col-12 col-lg-5">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">New vs Repeat Customers</h2>
+                <span class="text-muted small">Single-order vs returning customer volume</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 330px;">
+              <canvas id="repeatVsNewChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Machine Learning Customer Segments (Offline K-Means) -->
+    <div class="mt-4">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="h4 fw-bold mb-0">Customer Clusters (K-Means)</h2>
+      </div>
+
+      <!-- Segment Offline Note -->
+      <div class="alert alert-info py-2 px-3 mb-4 d-flex align-items-center gap-2 app-alert" role="alert">
+        <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+        <span class="small fw-medium">
+          Segments are computed offline with K-Means (k=3) and are not affected by the filters.
+        </span>
+      </div>
+
+      <!-- Segment Summary Cards -->
+      <div class="row g-3 mb-4" id="segment-cards-row">
+        <!-- High Value Card -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" style="border-left: 4px solid var(--primary);">
+            <div class="kpi-header">
+              <span class="kpi-title text-primary fw-bold">High Value</span>
+              <div class="kpi-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <i class="bi bi-gem"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-end mt-2">
+              <div>
+                <div class="text-muted small">Customers</div>
+                <div class="kpi-value mb-0" id="seg-high-count">-</div>
+              </div>
+              <div class="text-end">
+                <div class="text-muted small">Avg Total Spend</div>
+                <div class="fs-5 fw-bold text-dark" id="seg-high-avg">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Regular Card -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" style="border-left: 4px solid var(--info);">
+            <div class="kpi-header">
+              <span class="kpi-title text-info fw-bold">Regular</span>
+              <div class="kpi-icon" style="background-color: var(--info-light); color: var(--info);">
+                <i class="bi bi-person-check-fill"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-end mt-2">
+              <div>
+                <div class="text-muted small">Customers</div>
+                <div class="kpi-value mb-0" id="seg-regular-count">-</div>
+              </div>
+              <div class="text-end">
+                <div class="text-muted small">Avg Total Spend</div>
+                <div class="fs-5 fw-bold text-dark" id="seg-regular-avg">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Occasional Card -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" style="border-left: 4px solid var(--warning);">
+            <div class="kpi-header">
+              <span class="kpi-title text-warning fw-bold">Occasional</span>
+              <div class="kpi-icon" style="background-color: var(--warning-light); color: var(--warning);">
+                <i class="bi bi-clock-history"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-end mt-2">
+              <div>
+                <div class="text-muted small">Customers</div>
+                <div class="kpi-value mb-0" id="seg-occ-count">-</div>
+              </div>
+              <div class="text-end">
+                <div class="text-muted small">Avg Total Spend</div>
+                <div class="fs-5 fw-bold text-dark" id="seg-occ-avg">-</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scatter Plot Card -->
+      <div class="row">
+        <div class="col-12">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Customer Behavioral Clusters (Sample of 600 Patrons)</h3>
+                <span class="text-muted small">Order Count vs Total Lifetime Spend (INR), categorized by cluster</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 420px;">
+              <canvas id="segmentsScatterChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <!-- Footer -->
   <footer class="text-center">
     <div class="container-fluid px-4">
       <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
     </div>
   </footer>
 
+  <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Common Application JS -->
   <script src="js/common.js"></script>
+
+  <!-- Page Specific Logic -->
   <script>
+    let spendingChartInstance = null;
+    let repeatVsNewChartInstance = null;
+    let segmentsScatterChartInstance = null;
+
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('customers.html');
+      renderFilterBar(() => loadFilterAwareData());
+      loadFilterAwareData();
+      loadOfflineSegmentsData();
     });
+
+    /**
+     * Loads filter-aware charts (Spending distribution and Repeat vs New)
+     */
+    async function loadFilterAwareData() {
+      const spinner = document.getElementById('loading-spinner');
+      const chartsRow = document.getElementById('filtered-charts-row');
+      const emptyState = document.getElementById('empty-state');
+
+      spinner.classList.remove('d-none');
+      emptyState.classList.add('d-none');
+
+      try {
+        const query = buildQuery();
+        const [spendingData, repeatVsNewData] = await Promise.all([
+          api(`/api/customers/spending${query}`),
+          api(`/api/customers/repeat-vs-new${query}`)
+        ]);
+
+        spinner.classList.add('d-none');
+
+        const totalCusts = repeatVsNewData.reduce((sum, item) => sum + item.customers, 0);
+        if (totalCusts === 0) {
+          chartsRow.classList.add('d-none');
+          emptyState.classList.remove('d-none');
+          return;
+        }
+
+        chartsRow.classList.remove('d-none');
+
+        renderSpendingChart(spendingData);
+        renderRepeatVsNewChart(repeatVsNewData);
+
+      } catch (err) {
+        spinner.classList.add('d-none');
+        console.error('Failed to load filter-aware customer data', err);
+      }
+    }
+
+    /**
+     * Loads offline segments (Not filter-aware)
+     */
+    async function loadOfflineSegmentsData() {
+      try {
+        const segmentsData = await api('/api/customers/segments');
+        if (!segmentsData) return;
+
+        // Render Summary Cards
+        renderSegmentSummaries(segmentsData.summary || []);
+        // Render Scatter Plot
+        renderScatterPlot(segmentsData.points || []);
+      } catch (err) {
+        console.error('Failed to load offline segments data', err);
+      }
+    }
+
+    /**
+     * Bar Chart for Customer Spending Distribution
+     */
+    function renderSpendingChart(data) {
+      if (!data) return;
+
+      const labels = data.map(d => d.bucket);
+      const counts = data.map(d => d.customers);
+
+      const ctx = document.getElementById('spendingChart').getContext('2d');
+      if (spendingChartInstance) {
+        spendingChartInstance.destroy();
+      }
+
+      spendingChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Customers',
+            data: counts,
+            backgroundColor: '#4f46e5',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Customers: ${formatNumber(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatNumber(val)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * Pie / Doughnut Chart for New vs Repeat Customers
+     */
+    function renderRepeatVsNewChart(data) {
+      if (!data) return;
+
+      const labels = data.map(d => `${d.type} Customers`);
+      const counts = data.map(d => d.customers);
+      const total = counts.reduce((a, b) => a + b, 0);
+
+      const ctx = document.getElementById('repeatVsNewChart').getContext('2d');
+      if (repeatVsNewChartInstance) {
+        repeatVsNewChartInstance.destroy();
+      }
+
+      repeatVsNewChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: counts,
+            backgroundColor: ['#06b6d4', '#4f46e5'],
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 14,
+                boxHeight: 14,
+                padding: 16
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed;
+                  const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                  return ` ${ctx.label}: ${formatNumber(val)} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * Segment Summary Cards
+     */
+    function renderSegmentSummaries(summary) {
+      summary.forEach(s => {
+        const seg = s.segment;
+        if (seg === 'High Value') {
+          document.getElementById('seg-high-count').textContent = formatNumber(s.customers);
+          document.getElementById('seg-high-avg').textContent = formatCurrency(s.avgSpend);
+        } else if (seg === 'Regular') {
+          document.getElementById('seg-regular-count').textContent = formatNumber(s.customers);
+          document.getElementById('seg-regular-avg').textContent = formatCurrency(s.avgSpend);
+        } else if (seg === 'Occasional') {
+          document.getElementById('seg-occ-count').textContent = formatNumber(s.customers);
+          document.getElementById('seg-occ-avg').textContent = formatCurrency(s.avgSpend);
+        }
+      });
+    }
+
+    /**
+     * Scatter Plot for Customer Segments
+     */
+    function renderScatterPlot(points) {
+      if (!points || points.length === 0) return;
+
+      const highValuePoints = points.filter(p => p.segment === 'High Value').map(p => ({
+        x: p.orderCount,
+        y: p.totalSpend,
+        customerId: p.customerId
+      }));
+
+      const regularPoints = points.filter(p => p.segment === 'Regular').map(p => ({
+        x: p.orderCount,
+        y: p.totalSpend,
+        customerId: p.customerId
+      }));
+
+      const occasionalPoints = points.filter(p => p.segment === 'Occasional').map(p => ({
+        x: p.orderCount,
+        y: p.totalSpend,
+        customerId: p.customerId
+      }));
+
+      const ctx = document.getElementById('segmentsScatterChart').getContext('2d');
+      if (segmentsScatterChartInstance) {
+        segmentsScatterChartInstance.destroy();
+      }
+
+      segmentsScatterChartInstance = new Chart(ctx, {
+        type: 'scatter',
+        data: {
+          datasets: [
+            {
+              label: 'High Value',
+              data: highValuePoints,
+              backgroundColor: '#4f46e5',
+              borderColor: '#4338ca',
+              pointRadius: 6,
+              pointHoverRadius: 8
+            },
+            {
+              label: 'Regular',
+              data: regularPoints,
+              backgroundColor: '#06b6d4',
+              borderColor: '#0891b2',
+              pointRadius: 5,
+              pointHoverRadius: 7
+            },
+            {
+              label: 'Occasional',
+              data: occasionalPoints,
+              backgroundColor: '#f59e0b',
+              borderColor: '#d97706',
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                boxWidth: 12,
+                boxHeight: 12,
+                padding: 16
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const pt = ctx.raw;
+                  return ` [${ctx.dataset.label}] Cust #${pt.customerId}: ${pt.x} orders, Spend: ${formatCurrency(pt.y)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'Order Count',
+                font: { weight: '600' }
+              },
+              grid: { color: '#f1f5f9' },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Total Spend (INR)',
+                font: { weight: '600' }
+              },
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatCompactNumber(val)
+              }
+            }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
