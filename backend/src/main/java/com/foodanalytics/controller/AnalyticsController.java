@@ -212,4 +212,13 @@ public class AnalyticsController {
     ) {
         return analyticsRepository.getSentimentByCuisine(start, end, city, cuisine, restaurant);
     }
+
+    /**
+     * GET /api/forecast -> {"history":[{"date":"","orders":0}],"forecast":[{"date":"","predictedOrders":0}]}
+     * NOT filter-aware.
+     */
+    @GetMapping("/forecast")
+    public com.foodanalytics.dto.ForecastResponse forecast() {
+        return analyticsRepository.getForecast();
+    }
 }

@@ -459,4 +459,60 @@ public class AnalyticsRepository {
             return new com.foodanalytics.dto.CuisineSentimentResponse(cuis, pos, neu, neg);
         });
     }
+
+    /**
+     * Retrieves 120-day historical daily order counts (including 0s) and 30-day forecast points.
+     * NOT filter-aware.
+     */
+    public com.foodanalytics.dto.ForecastResponse getForecast() {
+        String maxDateSql = "SELECT MAX(order_date) FROM orders";
+        java.sql.Date maxSqlDate = jdbcTemplate.queryForObject(maxDateSql, Collections.emptyMap(), java.sql.Date.class);
+
+        List<com.foodanalytics.dto.ForecastResponse.HistoryPoint> historyList = new java.util.ArrayList<>();
+        if (maxSqlDate != null) {
+            java.time.LocalDate maxDate = maxSqlDate.toLocalDate();
+            java.time.LocalDate startDate = maxDate.minusDays(119); // Exactly 120 days
+
+            String historySql = "SELECT order_date, COUNT(*) AS orders " +
+                    "FROM orders " +
+                    "WHERE order_date >= :startDate AND order_date <= :maxDate " +
+                    "GROUP BY order_date " +
+                    "ORDER BY order_date ASC";
+
+            Map<String, Object> params = Map.of(
+                    "startDate", java.sql.Date.valueOf(startDate),
+                    "maxDate", java.sql.Date.valueOf(maxDate)
+            );
+
+            Map<java.time.LocalDate, Long> countsMap = new java.util.HashMap<>();
+            jdbcTemplate.query(historySql, params, rs -> {
+                countsMap.put(rs.getDate("order_date").toLocalDate(), rs.getLong("orders"));
+            });
+
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            java.time.LocalDate curr = startDate;
+            while (!curr.isAfter(maxDate)) {
+                String dStr = curr.format(formatter);
+                long cnt = countsMap.getOrDefault(curr, 0L);
+                historyList.add(new com.foodanalytics.dto.ForecastResponse.HistoryPoint(dStr, cnt));
+                curr = curr.plusDays(1);
+            }
+        }
+
+        String forecastSql = "SELECT DATE_FORMAT(forecast_date, '%Y-%m-%d') AS date, predicted_orders AS predictedOrders " +
+                "FROM forecast " +
+                "ORDER BY forecast_date ASC";
+
+        List<com.foodanalytics.dto.ForecastResponse.ForecastPoint> forecastList = jdbcTemplate.query(
+                forecastSql,
+                Collections.emptyMap(),
+                (rs, rowNum) -> {
+                    String d = rs.getString("date");
+                    int pred = rs.getInt("predictedOrders");
+                    return new com.foodanalytics.dto.ForecastResponse.ForecastPoint(d, pred);
+                }
+        );
+
+        return new com.foodanalytics.dto.ForecastResponse(historyList, forecastList);
+    }
 }

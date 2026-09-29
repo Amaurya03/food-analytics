@@ -4,38 +4,334 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Forecast | Food Analytics</title>
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <!-- Navigation Bar Container -->
   <div id="navbar-container"></div>
 
-  <main class="container-fluid px-lg-4 py-5 flex-grow-1">
-    <div class="empty-state py-5 my-5">
-      <div class="empty-icon text-primary">
-        <i class="bi bi-graph-up"></i>
+  <!-- Main Container -->
+  <main class="container-fluid px-lg-4 py-4 flex-grow-1">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Order Demand Forecasting</h1>
+        <p class="text-muted small mb-0">Predictive daily order trajectory powered by machine learning time-series regression</p>
       </div>
-      <h2 class="fw-bold mb-2">Forecast</h2>
-      <p class="text-muted fs-5 mb-0">Coming soon</p>
+    </div>
+
+    <!-- Error Alert Container -->
+    <div id="error-container"></div>
+
+    <!-- Notice Banner (No Filter Bar on Forecast Page) -->
+    <div class="alert alert-info py-2 px-3 mb-4 d-flex align-items-center gap-2 app-alert" role="alert">
+      <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+      <span class="small fw-medium">
+        The forecast is computed offline for all orders and is not affected by filters.
+      </span>
+    </div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loading-spinner" class="loading-overlay d-none">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading forecast model data...</span>
+      </div>
+      <p class="mt-3 fw-medium">Generating demand projections...</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-content">
+
+      <!-- Summary Cards Row -->
+      <div class="row g-3 mb-4">
+        <!-- Last 30 Days Average -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" style="border-left: 4px solid var(--primary);">
+            <div class="kpi-header">
+              <span class="kpi-title">Past 30 Days Average</span>
+              <div class="kpi-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <i class="bi bi-calendar-check"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-past-avg">-</div>
+            <div class="kpi-subtext">Average daily orders realized</div>
+          </div>
+        </div>
+
+        <!-- Next 30 Days Forecast Average -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" style="border-left: 4px solid var(--info);">
+            <div class="kpi-header">
+              <span class="kpi-title">Next 30 Days Forecast</span>
+              <div class="kpi-icon" style="background-color: var(--info-light); color: var(--info);">
+                <i class="bi bi-graph-up"></i>
+              </div>
+            </div>
+            <div class="kpi-value text-info" id="kpi-forecast-avg">-</div>
+            <div class="kpi-subtext">Projected average daily orders</div>
+          </div>
+        </div>
+
+        <!-- Percentage Change -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card" id="kpi-change-card" style="border-left: 4px solid var(--border-color);">
+            <div class="kpi-header">
+              <span class="kpi-title">Projected Growth</span>
+              <div class="kpi-icon" id="kpi-change-icon" style="background-color: #f1f5f9; color: var(--text-muted);">
+                <i class="bi bi-arrow-left-right"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-growth-pct">-</div>
+            <div class="kpi-subtext">Change vs prior 30-day baseline</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Forecast Chart Card -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Daily Order Volume & 30-Day Demand Forecast</h2>
+                <span class="text-muted small">Historical volume (last 120 days) seamlessly transitioning into predicted volume</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 400px;">
+              <canvas id="forecastChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- "How this works" Text Box -->
+      <div class="row">
+        <div class="col-12">
+          <div class="chart-card bg-light border-0">
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <span class="badge bg-primary px-2 py-1">Methodology</span>
+              <h3 class="h6 fw-bold mb-0 text-dark">How this works</h3>
+            </div>
+            <p class="mb-0 text-secondary" style="font-size: 0.95rem; line-height: 1.6;">
+              Linear regression on the daily order count using a time trend and day-of-week effects, evaluated on a 28-day holdout.
+            </p>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <!-- Footer -->
   <footer class="text-center">
     <div class="container-fluid px-4">
       <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
     </div>
   </footer>
 
+  <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Common Application JS -->
   <script src="js/common.js"></script>
+
+  <!-- Page Specific Logic -->
   <script>
+    let forecastChartInstance = null;
+
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('forecast.html');
+      loadForecastData();
     });
+
+    async function loadForecastData() {
+      const spinner = document.getElementById('loading-spinner');
+      const content = document.getElementById('dashboard-content');
+
+      spinner.classList.remove('d-none');
+
+      try {
+        const data = await api('/api/forecast');
+        spinner.classList.add('d-none');
+
+        if (!data || !data.history || !data.forecast) {
+          showGlobalError('Invalid forecast data received.');
+          return;
+        }
+
+        renderSummaryCards(data.history, data.forecast);
+        renderForecastChart(data.history, data.forecast);
+
+      } catch (err) {
+        spinner.classList.add('d-none');
+        console.error('Failed to load forecast data', err);
+      }
+    }
+
+    /**
+     * Renders the 3 summary cards
+     */
+    function renderSummaryCards(history, forecast) {
+      if (history.length === 0 || forecast.length === 0) return;
+
+      // 1. Average daily orders over last 30 days of history
+      const last30History = history.slice(-30);
+      const pastTotal = last30History.reduce((sum, h) => sum + h.orders, 0);
+      const pastAvg = pastTotal / last30History.length;
+
+      // 2. Average daily orders predicted over next 30 days
+      const forecastTotal = forecast.reduce((sum, f) => sum + f.predictedOrders, 0);
+      const forecastAvg = forecastTotal / forecast.length;
+
+      // 3. Percentage change
+      const pctChange = pastAvg > 0 ? (((forecastAvg - pastAvg) / pastAvg) * 100) : 0;
+
+      document.getElementById('kpi-past-avg').textContent = `${pastAvg.toFixed(1)} orders/day`;
+      document.getElementById('kpi-forecast-avg').textContent = `${forecastAvg.toFixed(1)} orders/day`;
+
+      const changeElem = document.getElementById('kpi-growth-pct');
+      const changeCard = document.getElementById('kpi-change-card');
+      const changeIcon = document.getElementById('kpi-change-icon');
+
+      const isPositive = pctChange >= 0;
+      const sign = isPositive ? '+' : '';
+      changeElem.textContent = `${sign}${pctChange.toFixed(1)}%`;
+
+      if (isPositive) {
+        changeElem.className = 'kpi-value text-success';
+        changeCard.style.borderLeftColor = 'var(--success)';
+        changeIcon.style.backgroundColor = 'var(--success-light)';
+        changeIcon.style.color = 'var(--success)';
+        changeIcon.innerHTML = '<i class="bi bi-arrow-up-right"></i>';
+      } else {
+        changeElem.className = 'kpi-value text-danger';
+        changeCard.style.borderLeftColor = '#ef4444';
+        changeIcon.style.backgroundColor = '#fef2f2';
+        changeIcon.style.color = '#ef4444';
+        changeIcon.innerHTML = '<i class="bi bi-arrow-down-right"></i>';
+      }
+    }
+
+    /**
+     * Renders combined Line Chart (History solid line, Forecast dashed line continuing from history end)
+     */
+    function renderForecastChart(history, forecast) {
+      // Dates alignment
+      const historyDates = history.map(h => h.date);
+      const forecastDates = forecast.map(f => f.date);
+      const allLabels = [...historyDates, ...forecastDates];
+
+      // Dataset 1: History
+      // Length = 120 + 30. First 120 have values, next 30 are null.
+      const historySeries = history.map(h => h.orders);
+      const historyData = [...historySeries, ...Array(forecastDates.length).fill(null)];
+
+      // Dataset 2: Forecast
+      // Continues from where history ends.
+      // So at index historyDates.length - 1 (the last historical day), we place the last history value,
+      // and then the 30 predicted values. Prior days are null.
+      const lastHistoryVal = history.length > 0 ? history[history.length - 1].orders : null;
+      const forecastSeries = forecast.map(f => f.predictedOrders);
+
+      const forecastData = [
+        ...Array(Math.max(0, historyDates.length - 1)).fill(null),
+        lastHistoryVal,
+        ...forecastSeries
+      ];
+
+      const ctx = document.getElementById('forecastChart').getContext('2d');
+      if (forecastChartInstance) {
+        forecastChartInstance.destroy();
+      }
+
+      forecastChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: allLabels,
+          datasets: [
+            {
+              label: 'Historical Orders (Last 120 Days)',
+              data: historyData,
+              borderColor: '#4f46e5',
+              backgroundColor: 'rgba(79, 70, 229, 0.05)',
+              borderWidth: 2.2,
+              fill: false,
+              tension: 0.25,
+              pointRadius: 0,
+              pointHoverRadius: 5
+            },
+            {
+              label: '30-Day Forecast (Predicted Orders)',
+              data: forecastData,
+              borderColor: '#06b6d4',
+              backgroundColor: 'rgba(6, 182, 212, 0.05)',
+              borderWidth: 2.5,
+              borderDash: [6, 6],
+              fill: false,
+              tension: 0.25,
+              pointRadius: 2,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#06b6d4'
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: {
+                boxWidth: 14,
+                boxHeight: 14,
+                padding: 16
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed.y;
+                  if (val === null || val === undefined) return null;
+                  return ` ${ctx.dataset.label}: ${formatNumber(val)} orders`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: {
+                maxTicksLimit: 14,
+                font: { size: 11 }
+              }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatNumber(val)
+              }
+            }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
