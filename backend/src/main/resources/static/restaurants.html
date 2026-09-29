@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Restaurants & Regions | Food Analytics</title>
+  <title>Restaurants & Regions | Food Delivery & Customer Analytics System</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -72,7 +72,7 @@
                 <button type="button" class="btn btn-outline-primary btn-sm" id="btn-metric-orders" onclick="setRestaurantMetric('orders')">Orders</button>
               </div>
             </div>
-            <div class="chart-container" style="height: 360px;">
+            <div class="chart-container" id="topRestaurantsChartContainer">
               <canvas id="topRestaurantsChart"></canvas>
             </div>
           </div>
@@ -87,7 +87,7 @@
                 <span class="text-muted small">Top 8 cuisines ordered</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 360px;">
+            <div class="chart-container" id="cuisinesChartContainer">
               <canvas id="cuisinesChart"></canvas>
             </div>
           </div>
@@ -105,7 +105,7 @@
                 <span class="text-muted small">Order volume across regions</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 320px;">
+            <div class="chart-container" id="cityOrdersChartContainer">
               <canvas id="cityOrdersChart"></canvas>
             </div>
           </div>
@@ -120,7 +120,7 @@
                 <span class="text-muted small">Gross revenue across regions (INR)</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 320px;">
+            <div class="chart-container" id="cityRevenueChartContainer">
               <canvas id="cityRevenueChart"></canvas>
             </div>
           </div>
@@ -161,9 +161,9 @@
   </main>
 
   <!-- Footer -->
-  <footer class="text-center">
+  <footer class="text-center py-3 border-top bg-white">
     <div class="container-fluid px-4">
-      <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
+      <span class="text-muted small">Food Delivery & Customer Analytics System | Dataset is synthetic</span>
     </div>
   </footer>
 
@@ -187,6 +187,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('restaurants.html');
+      renderFooter();
       renderFilterBar(() => loadRestaurantsData());
       loadRestaurantsData();
     });
@@ -209,6 +210,12 @@
       spinner.classList.remove('d-none');
       emptyState.classList.add('d-none');
 
+      setChartLoading('topRestaurantsChartContainer', 'Loading top restaurants...');
+      setChartLoading('cuisinesChartContainer', 'Loading popular cuisines...');
+      setChartLoading('cityOrdersChartContainer', 'Loading city orders...');
+      setChartLoading('cityRevenueChartContainer', 'Loading city revenue...');
+      setTableState('top-restaurants-tbody', 'loading', 5, 'Loading restaurant performance table...');
+
       try {
         const query = buildQuery();
         const [topRestaurants, regions, cuisines] = await Promise.all([
@@ -223,6 +230,11 @@
         if (!topRestaurants || topRestaurants.length === 0) {
           content.classList.add('d-none');
           emptyState.classList.remove('d-none');
+          setChartEmpty('topRestaurantsChartContainer');
+          setChartEmpty('cuisinesChartContainer');
+          setChartEmpty('cityOrdersChartContainer');
+          setChartEmpty('cityRevenueChartContainer');
+          setTableState('top-restaurants-tbody', 'empty', 5);
           return;
         }
 
@@ -237,6 +249,11 @@
 
       } catch (err) {
         spinner.classList.add('d-none');
+        setChartError('topRestaurantsChartContainer', 'Failed to load top restaurants.');
+        setChartError('cuisinesChartContainer', 'Failed to load cuisines.');
+        setChartError('cityOrdersChartContainer', 'Failed to load city orders.');
+        setChartError('cityRevenueChartContainer', 'Failed to load city revenue.');
+        setTableState('top-restaurants-tbody', 'error', 5, 'Failed to load restaurant rankings.');
         console.error('Failed to load restaurants page data', err);
       }
     }
@@ -245,7 +262,11 @@
      * Horizontal Bar Chart for Top 10 Restaurants (Revenue or Orders)
      */
     function renderTopRestaurantsChart(data) {
-      if (!data || data.length === 0) return;
+      if (!data || data.length === 0) {
+        setChartEmpty('topRestaurantsChartContainer');
+        return;
+      }
+      removeChartState('topRestaurantsChartContainer');
 
       // Sort data according to current metric
       const sorted = [...data].sort((a, b) => {
@@ -312,7 +333,11 @@
      * Doughnut Chart for Popular Cuisines (Top 8 by orders)
      */
     function renderCuisinesChart(cuisines) {
-      if (!cuisines || cuisines.length === 0) return;
+      if (!cuisines || cuisines.length === 0) {
+        setChartEmpty('cuisinesChartContainer');
+        return;
+      }
+      removeChartState('cuisinesChartContainer');
 
       // Sort by orders descending and take top 8
       const top8 = [...cuisines].sort((a, b) => b.orders - a.orders).slice(0, 8);
@@ -373,7 +398,13 @@
      * Bar Charts for City Orders & City Revenue
      */
     function renderCityCharts(regions) {
-      if (!regions || regions.length === 0) return;
+      if (!regions || regions.length === 0) {
+        setChartEmpty('cityOrdersChartContainer');
+        setChartEmpty('cityRevenueChartContainer');
+        return;
+      }
+      removeChartState('cityOrdersChartContainer');
+      removeChartState('cityRevenueChartContainer');
 
       // City Orders (sorted by orders desc)
       const sortedByOrders = [...regions].sort((a, b) => b.orders - a.orders);
@@ -480,6 +511,11 @@
     function renderTopRestaurantsTable(restaurants) {
       const tbody = document.getElementById('top-restaurants-tbody');
       if (!tbody) return;
+
+      if (!restaurants || restaurants.length === 0) {
+        setTableState('top-restaurants-tbody', 'empty', 5);
+        return;
+      }
 
       tbody.innerHTML = restaurants.map((r, index) => {
         const rank = index + 1;

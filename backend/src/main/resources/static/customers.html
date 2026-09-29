@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Customers | Food Analytics</title>
+  <title>Customers | Food Delivery & Customer Analytics System</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -66,7 +66,7 @@
                 <span class="text-muted small">Number of customers grouped by total spend bracket (INR)</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 330px;">
+            <div class="chart-container" id="spendingChartContainer">
               <canvas id="spendingChart"></canvas>
             </div>
           </div>
@@ -81,7 +81,7 @@
                 <span class="text-muted small">Single-order vs returning customer volume</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 330px;">
+            <div class="chart-container" id="repeatVsNewChartContainer">
               <canvas id="repeatVsNewChart"></canvas>
             </div>
           </div>
@@ -182,7 +182,7 @@
                 <span class="text-muted small">Order Count vs Total Lifetime Spend (INR), categorized by cluster</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 420px;">
+            <div class="chart-container-tall" id="segmentsScatterChartContainer">
               <canvas id="segmentsScatterChart"></canvas>
             </div>
           </div>
@@ -193,9 +193,9 @@
   </main>
 
   <!-- Footer -->
-  <footer class="text-center">
+  <footer class="text-center py-3 border-top bg-white">
     <div class="container-fluid px-4">
-      <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
+      <span class="text-muted small">Food Delivery & Customer Analytics System | Dataset is synthetic</span>
     </div>
   </footer>
 
@@ -214,6 +214,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('customers.html');
+      renderFooter();
       renderFilterBar(() => loadFilterAwareData());
       loadFilterAwareData();
       loadOfflineSegmentsData();
@@ -230,6 +231,9 @@
       spinner.classList.remove('d-none');
       emptyState.classList.add('d-none');
 
+      setChartLoading('spendingChartContainer', 'Loading customer spending distribution...');
+      setChartLoading('repeatVsNewChartContainer', 'Calculating cohort distribution...');
+
       try {
         const query = buildQuery();
         const [spendingData, repeatVsNewData] = await Promise.all([
@@ -243,6 +247,8 @@
         if (totalCusts === 0) {
           chartsRow.classList.add('d-none');
           emptyState.classList.remove('d-none');
+          setChartEmpty('spendingChartContainer');
+          setChartEmpty('repeatVsNewChartContainer');
           return;
         }
 
@@ -253,6 +259,8 @@
 
       } catch (err) {
         spinner.classList.add('d-none');
+        setChartError('spendingChartContainer', 'Failed to load spending distribution.');
+        setChartError('repeatVsNewChartContainer', 'Failed to load customer cohorts.');
         console.error('Failed to load filter-aware customer data', err);
       }
     }
@@ -261,15 +269,20 @@
      * Loads offline segments (Not filter-aware)
      */
     async function loadOfflineSegmentsData() {
+      setChartLoading('segmentsScatterChartContainer', 'Loading K-Means customer cluster sample...');
       try {
         const segmentsData = await api('/api/customers/segments');
-        if (!segmentsData) return;
+        if (!segmentsData) {
+          setChartEmpty('segmentsScatterChartContainer', 'No cluster data found.');
+          return;
+        }
 
         // Render Summary Cards
         renderSegmentSummaries(segmentsData.summary || []);
         // Render Scatter Plot
         renderScatterPlot(segmentsData.points || []);
       } catch (err) {
+        setChartError('segmentsScatterChartContainer', 'Failed to load customer cluster plot.');
         console.error('Failed to load offline segments data', err);
       }
     }
@@ -278,7 +291,11 @@
      * Bar Chart for Customer Spending Distribution
      */
     function renderSpendingChart(data) {
-      if (!data) return;
+      if (!data || data.length === 0) {
+        setChartEmpty('spendingChartContainer');
+        return;
+      }
+      removeChartState('spendingChartContainer');
 
       const labels = data.map(d => d.bucket);
       const counts = data.map(d => d.customers);
@@ -332,7 +349,11 @@
      * Pie / Doughnut Chart for New vs Repeat Customers
      */
     function renderRepeatVsNewChart(data) {
-      if (!data) return;
+      if (!data || data.length === 0) {
+        setChartEmpty('repeatVsNewChartContainer');
+        return;
+      }
+      removeChartState('repeatVsNewChartContainer');
 
       const labels = data.map(d => `${d.type} Customers`);
       const counts = data.map(d => d.customers);
@@ -403,7 +424,11 @@
      * Scatter Plot for Customer Segments
      */
     function renderScatterPlot(points) {
-      if (!points || points.length === 0) return;
+      if (!points || points.length === 0) {
+        setChartEmpty('segmentsScatterChartContainer');
+        return;
+      }
+      removeChartState('segmentsScatterChartContainer');
 
       const highValuePoints = points.filter(p => p.segment === 'High Value').map(p => ({
         x: p.orderCount,

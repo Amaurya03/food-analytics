@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Forecast | Food Analytics</title>
+  <title>Forecast | Food Delivery & Customer Analytics System</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -108,7 +108,7 @@
                 <span class="text-muted small">Historical volume (last 120 days) seamlessly transitioning into predicted volume</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 400px;">
+            <div class="chart-container-tall" id="forecastChartContainer">
               <canvas id="forecastChart"></canvas>
             </div>
           </div>
@@ -134,9 +134,9 @@
   </main>
 
   <!-- Footer -->
-  <footer class="text-center">
+  <footer class="text-center py-3 border-top bg-white">
     <div class="container-fluid px-4">
-      <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
+      <span class="text-muted small">Food Delivery & Customer Analytics System | Dataset is synthetic</span>
     </div>
   </footer>
 
@@ -153,6 +153,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('forecast.html');
+      renderFooter();
       loadForecastData();
     });
 
@@ -161,13 +162,14 @@
       const content = document.getElementById('dashboard-content');
 
       spinner.classList.remove('d-none');
+      setChartLoading('forecastChartContainer', 'Generating 30-day forecast projection...');
 
       try {
         const data = await api('/api/forecast');
         spinner.classList.add('d-none');
 
-        if (!data || !data.history || !data.forecast) {
-          showGlobalError('Invalid forecast data received.');
+        if (!data || !data.history || !data.forecast || (data.history.length === 0 && data.forecast.length === 0)) {
+          setChartEmpty('forecastChartContainer', 'No forecast model data available.');
           return;
         }
 
@@ -176,6 +178,7 @@
 
       } catch (err) {
         spinner.classList.add('d-none');
+        setChartError('forecastChartContainer', 'Failed to generate order forecast.');
         console.error('Failed to load forecast data', err);
       }
     }
@@ -228,6 +231,7 @@
      * Renders combined Line Chart (History solid line, Forecast dashed line continuing from history end)
      */
     function renderForecastChart(history, forecast) {
+      removeChartState('forecastChartContainer');
       // Dates alignment
       const historyDates = history.map(h => h.date);
       const forecastDates = forecast.map(f => f.date);

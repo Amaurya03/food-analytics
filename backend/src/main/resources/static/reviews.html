@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reviews & Sentiment | Food Analytics</title>
+  <title>Reviews & Sentiment | Food Delivery & Customer Analytics System</title>
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -113,7 +113,7 @@
                 <span class="text-muted small">Distribution of positive, neutral, and negative reviews</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 350px;">
+            <div class="chart-container" id="sentimentPieChartContainer">
               <canvas id="sentimentPieChart"></canvas>
             </div>
           </div>
@@ -128,7 +128,7 @@
                 <span class="text-muted small">Relative satisfaction profile across food categories</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 350px;">
+            <div class="chart-container" id="cuisineSentimentChartContainer">
               <canvas id="cuisineSentimentChart"></canvas>
             </div>
           </div>
@@ -145,7 +145,7 @@
                 <span class="text-muted small">Customer reception across leading restaurants by total review volume</span>
               </div>
             </div>
-            <div class="chart-container" style="height: 380px;">
+            <div class="chart-container-tall" id="restaurantSentimentChartContainer">
               <canvas id="restaurantSentimentChart"></canvas>
             </div>
           </div>
@@ -156,9 +156,9 @@
   </main>
 
   <!-- Footer -->
-  <footer class="text-center">
+  <footer class="text-center py-3 border-top bg-white">
     <div class="container-fluid px-4">
-      <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
+      <span class="text-muted small">Food Delivery & Customer Analytics System | Dataset is synthetic</span>
     </div>
   </footer>
 
@@ -177,6 +177,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('reviews.html');
+      renderFooter();
       renderFilterBar(() => loadReviewsData());
       loadReviewsData();
     });
@@ -188,6 +189,10 @@
 
       spinner.classList.remove('d-none');
       emptyState.classList.add('d-none');
+
+      setChartLoading('sentimentPieChartContainer', 'Loading sentiment breakdown...');
+      setChartLoading('cuisineSentimentChartContainer', 'Analyzing cuisine sentiment...');
+      setChartLoading('restaurantSentimentChartContainer', 'Aggregating merchant sentiment...');
 
       try {
         const query = buildQuery();
@@ -203,6 +208,9 @@
         if (!stats || stats.totalReviews === 0) {
           content.classList.add('d-none');
           emptyState.classList.remove('d-none');
+          setChartEmpty('sentimentPieChartContainer');
+          setChartEmpty('cuisineSentimentChartContainer');
+          setChartEmpty('restaurantSentimentChartContainer');
           return;
         }
 
@@ -220,6 +228,9 @@
 
       } catch (err) {
         spinner.classList.add('d-none');
+        setChartError('sentimentPieChartContainer', 'Failed to load sentiment breakdown.');
+        setChartError('cuisineSentimentChartContainer', 'Failed to load cuisine sentiment.');
+        setChartError('restaurantSentimentChartContainer', 'Failed to load restaurant sentiment.');
         console.error('Failed to load reviews data', err);
       }
     }
@@ -229,7 +240,11 @@
      * Green (#10b981), Grey (#94a3b8), Red (#ef4444)
      */
     function renderSentimentPieChart(summary) {
-      if (!summary) return;
+      if (!summary || summary.length === 0) {
+        setChartEmpty('sentimentPieChartContainer');
+        return;
+      }
+      removeChartState('sentimentPieChartContainer');
 
       const orderMap = { 'positive': 0, 'neutral': 1, 'negative': 2 };
       const sorted = [...summary].sort((a, b) => orderMap[a.sentiment] - orderMap[b.sentiment]);
@@ -291,7 +306,11 @@
      * 100% Stacked Bar Chart for Sentiment by Cuisine
      */
     function renderCuisineSentimentChart(cuisineData) {
-      if (!cuisineData || cuisineData.length === 0) return;
+      if (!cuisineData || cuisineData.length === 0) {
+        setChartEmpty('cuisineSentimentChartContainer');
+        return;
+      }
+      removeChartState('cuisineSentimentChartContainer');
 
       const labels = cuisineData.map(c => c.cuisine);
       const rawPos = cuisineData.map(c => c.positive);
@@ -377,7 +396,11 @@
      * 100% Stacked Horizontal Bar Chart for Sentiment by Restaurant (Top 10)
      */
     function renderRestaurantSentimentChart(restaurantData) {
-      if (!restaurantData || restaurantData.length === 0) return;
+      if (!restaurantData || restaurantData.length === 0) {
+        setChartEmpty('restaurantSentimentChartContainer');
+        return;
+      }
+      removeChartState('restaurantSentimentChartContainer');
 
       const labels = restaurantData.map(r => r.restaurant);
       const rawPos = restaurantData.map(r => r.positive);

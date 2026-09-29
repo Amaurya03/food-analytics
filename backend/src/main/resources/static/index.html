@@ -131,7 +131,7 @@
                 <button type="button" class="btn btn-outline-primary btn-sm" id="btn-granularity-week" onclick="setGranularity('week')">Week</button>
               </div>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" id="revenueChartContainer">
               <canvas id="revenueChart"></canvas>
             </div>
           </div>
@@ -146,7 +146,7 @@
                 <span class="text-muted small">Total completed orders</span>
               </div>
             </div>
-            <div class="chart-container">
+            <div class="chart-container" id="ordersChartContainer">
               <canvas id="ordersChart"></canvas>
             </div>
           </div>
@@ -157,9 +157,9 @@
   </main>
 
   <!-- Footer -->
-  <footer class="text-center">
+  <footer class="text-center py-3 border-top bg-white">
     <div class="container-fluid px-4">
-      <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
+      <span class="text-muted small">Food Delivery & Customer Analytics System | Dataset is synthetic</span>
     </div>
   </footer>
 
@@ -178,6 +178,7 @@
 
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('index.html');
+      renderFooter();
       renderFilterBar(() => loadDashboardData());
       loadDashboardData();
     });
@@ -199,6 +200,8 @@
 
       spinner.classList.remove('d-none');
       emptyState.classList.add('d-none');
+      setChartLoading('revenueChartContainer', 'Loading revenue trend...');
+      setChartLoading('ordersChartContainer', 'Loading order volume...');
 
       try {
         const query = buildQuery();
@@ -213,6 +216,8 @@
         if (!kpiData || kpiData.totalOrders === 0) {
           content.classList.add('d-none');
           emptyState.classList.remove('d-none');
+          setChartEmpty('revenueChartContainer');
+          setChartEmpty('ordersChartContainer');
           return;
         }
 
@@ -228,21 +233,34 @@
         renderCharts(trendData);
       } catch (err) {
         spinner.classList.add('d-none');
+        setChartError('revenueChartContainer', 'Failed to load revenue trend.');
+        setChartError('ordersChartContainer', 'Failed to load order volume.');
         console.error('Failed to load dashboard data', err);
       }
     }
 
     async function loadTrendData() {
+      setChartLoading('revenueChartContainer', 'Updating revenue trend...');
+      setChartLoading('ordersChartContainer', 'Updating order volume...');
       try {
         const trendData = await api(`/api/trend${buildQuery({ granularity: currentGranularity })}`);
         renderCharts(trendData);
       } catch (err) {
+        setChartError('revenueChartContainer', 'Failed to update revenue trend.');
+        setChartError('ordersChartContainer', 'Failed to update order volume.');
         console.error('Failed to load trend data', err);
       }
     }
 
     function renderCharts(trendData) {
-      if (!trendData || trendData.length === 0) return;
+      if (!trendData || trendData.length === 0) {
+        setChartEmpty('revenueChartContainer', 'No trend data available.');
+        setChartEmpty('ordersChartContainer', 'No order volume data available.');
+        return;
+      }
+
+      removeChartState('revenueChartContainer');
+      removeChartState('ordersChartContainer');
 
       const labels = trendData.map(d => d.period);
       const revenues = trendData.map(d => d.revenue);

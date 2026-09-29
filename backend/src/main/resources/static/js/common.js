@@ -296,3 +296,133 @@ function formatCompactNumber(num) {
   if (num === null || num === undefined || isNaN(num)) return '0';
   return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 1 }).format(num);
 }
+
+// Chart and Table State Handlers (Loading, Empty, Error)
+/**
+ * Sets a chart container into a Loading state overlay
+ * @param {string} containerId - Element ID of the .chart-container
+ * @param {string} message - Optional loading message
+ */
+function setChartLoading(containerId, message = 'Loading chart data...') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  removeChartState(containerId);
+  const overlay = document.createElement('div');
+  overlay.className = 'card-state-overlay state-loading';
+  overlay.innerHTML = `
+    <div class="spinner-border spinner-border-sm text-primary mb-2" role="status" style="width: 2rem; height: 2rem;">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="state-text">${escapeHtml(message)}</div>
+  `;
+  container.appendChild(overlay);
+}
+
+/**
+ * Sets a chart container into an Empty state overlay
+ * @param {string} containerId - Element ID of the .chart-container
+ * @param {string} message - Optional message
+ */
+function setChartEmpty(containerId, message = 'No data available for the current selection.') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  removeChartState(containerId);
+  const overlay = document.createElement('div');
+  overlay.className = 'card-state-overlay state-empty';
+  overlay.innerHTML = `
+    <div class="state-icon text-muted"><i class="bi bi-inbox"></i></div>
+    <div class="state-title">No Data Available</div>
+    <div class="state-text">${escapeHtml(message)}</div>
+  `;
+  container.appendChild(overlay);
+}
+
+/**
+ * Sets a chart container into an Error state overlay
+ * @param {string} containerId - Element ID of the .chart-container
+ * @param {string} message - Optional error message
+ */
+function setChartError(containerId, message = 'Failed to load chart data.') {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  removeChartState(containerId);
+  const overlay = document.createElement('div');
+  overlay.className = 'card-state-overlay state-error';
+  overlay.innerHTML = `
+    <div class="state-icon text-danger"><i class="bi bi-exclamation-octagon"></i></div>
+    <div class="state-title">Unable to Load Chart</div>
+    <div class="state-text">${escapeHtml(message)}</div>
+  `;
+  container.appendChild(overlay);
+}
+
+/**
+ * Removes any state overlay from a container
+ * @param {string} containerId 
+ */
+function removeChartState(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const existing = container.querySelector('.card-state-overlay');
+  if (existing) {
+    existing.remove();
+  }
+}
+
+/**
+ * Helper to set Table Body state (loading, empty, error)
+ * @param {string} tbodyId
+ * @param {'loading'|'empty'|'error'} state
+ * @param {number} colSpan
+ * @param {string} message
+ */
+function setTableState(tbodyId, state, colSpan = 5, message = '') {
+  const tbody = document.getElementById(tbodyId);
+  if (!tbody) return;
+  if (state === 'loading') {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="${colSpan}" class="text-center py-4 text-muted">
+          <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+          <span>${message || 'Loading table data...'}</span>
+        </td>
+      </tr>
+    `;
+  } else if (state === 'empty') {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="${colSpan}" class="text-center py-4 text-muted">
+          <i class="bi bi-inbox fs-4 d-block mb-1 text-secondary"></i>
+          <span>${message || 'No records found matching current criteria.'}</span>
+        </td>
+      </tr>
+    `;
+  } else if (state === 'error') {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="${colSpan}" class="text-center py-4 text-danger">
+          <i class="bi bi-exclamation-triangle fs-4 d-block mb-1"></i>
+          <span>${message || 'Failed to load table records.'}</span>
+        </td>
+      </tr>
+    `;
+  }
+}
+
+/**
+ * Renders the standardized footer across pages
+ */
+function renderFooter() {
+  const footerText = 'Food Delivery & Customer Analytics System | Dataset is synthetic';
+  let footer = document.querySelector('footer');
+  if (!footer) {
+    footer = document.createElement('footer');
+    document.body.appendChild(footer);
+  }
+  footer.className = 'text-center py-3 border-top bg-white';
+  footer.innerHTML = `
+    <div class="container-fluid px-4">
+      <span class="text-muted small">${footerText}</span>
+    </div>
+  `;
+}
