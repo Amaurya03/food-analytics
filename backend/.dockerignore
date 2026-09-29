@@ -1,0 +1,5 @@
+target/
+.git
+.idea
+*.md
+run-local.ps1
