@@ -340,4 +340,123 @@ public class AnalyticsRepository {
 
         return new com.foodanalytics.dto.CustomerSegmentsResponse(summary, points);
     }
+
+    /**
+     * Helper to get a WHERE clause that ensures sentiment IS NOT NULL.
+     */
+    private String getSentimentWhereClause(QueryFilterHelper.FilterResult filter) {
+        if (filter.getWhereClause().isEmpty()) {
+            return " WHERE sentiment IS NOT NULL";
+        } else {
+            return filter.getWhereClause() + " AND sentiment IS NOT NULL";
+        }
+    }
+
+    /**
+     * Retrieves overall sentiment counts (positive, neutral, negative), filter-aware, ignoring NULL.
+     */
+    public List<com.foodanalytics.dto.SentimentSummaryResponse> getSentimentSummary(
+            String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+        String sql = "SELECT sentiment, COUNT(*) AS count " +
+                "FROM orders" + getSentimentWhereClause(filter) + " " +
+                "GROUP BY sentiment";
+
+        Map<String, Long> countMap = new java.util.HashMap<>();
+        jdbcTemplate.query(sql, filter.getParams(), rs -> {
+            countMap.put(rs.getString("sentiment"), rs.getLong("count"));
+        });
+
+        return List.of(
+                new com.foodanalytics.dto.SentimentSummaryResponse("positive", countMap.getOrDefault("positive", 0L)),
+                new com.foodanalytics.dto.SentimentSummaryResponse("neutral", countMap.getOrDefault("neutral", 0L)),
+                new com.foodanalytics.dto.SentimentSummaryResponse("negative", countMap.getOrDefault("negative", 0L))
+        );
+    }
+
+    /**
+     * Retrieves sentiment stats: totalReviews, percentPositive, avgRating, filter-aware.
+     */
+    public com.foodanalytics.dto.SentimentStatsResponse getSentimentStats(
+            String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+        String sql = "SELECT " +
+                "COUNT(*) AS total_reviews, " +
+                "SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) AS positive_count, " +
+                "COALESCE(AVG(rating), 0.0) AS avg_rating " +
+                "FROM orders" + getSentimentWhereClause(filter);
+
+        return jdbcTemplate.queryForObject(sql, filter.getParams(), (rs, rowNum) -> {
+            long totalReviews = rs.getLong("total_reviews");
+            long positiveCount = rs.getLong("positive_count");
+            double rawAvgRating = rs.getDouble("avg_rating");
+
+            double percentPositive = totalReviews > 0
+                    ? BigDecimal.valueOf((positiveCount * 100.0) / totalReviews)
+                            .setScale(1, RoundingMode.HALF_UP)
+                            .doubleValue()
+                    : 0.0;
+
+            double avgRating = BigDecimal.valueOf(rawAvgRating)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+
+            return new com.foodanalytics.dto.SentimentStatsResponse(totalReviews, percentPositive, avgRating);
+        });
+    }
+
+    /**
+     * Retrieves sentiment by restaurant for top 10 restaurants by review count, filter-aware.
+     */
+    public List<com.foodanalytics.dto.RestaurantSentimentResponse> getSentimentByRestaurant(
+            String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+        String sql = "SELECT " +
+                "restaurant, " +
+                "SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) AS positive, " +
+                "SUM(CASE WHEN sentiment = 'neutral' THEN 1 ELSE 0 END) AS neutral, " +
+                "SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END) AS negative, " +
+                "COUNT(*) AS total_reviews " +
+                "FROM orders" + getSentimentWhereClause(filter) + " " +
+                "GROUP BY restaurant " +
+                "ORDER BY total_reviews DESC " +
+                "LIMIT 10";
+
+        return jdbcTemplate.query(sql, filter.getParams(), (rs, rowNum) -> {
+            String rest = rs.getString("restaurant");
+            long pos = rs.getLong("positive");
+            long neu = rs.getLong("neutral");
+            long neg = rs.getLong("negative");
+            return new com.foodanalytics.dto.RestaurantSentimentResponse(rest, pos, neu, neg);
+        });
+    }
+
+    /**
+     * Retrieves sentiment grouped by cuisine, filter-aware.
+     */
+    public List<com.foodanalytics.dto.CuisineSentimentResponse> getSentimentByCuisine(
+            String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+        String sql = "SELECT " +
+                "cuisine, " +
+                "SUM(CASE WHEN sentiment = 'positive' THEN 1 ELSE 0 END) AS positive, " +
+                "SUM(CASE WHEN sentiment = 'neutral' THEN 1 ELSE 0 END) AS neutral, " +
+                "SUM(CASE WHEN sentiment = 'negative' THEN 1 ELSE 0 END) AS negative, " +
+                "COUNT(*) AS total_reviews " +
+                "FROM orders" + getSentimentWhereClause(filter) + " " +
+                "GROUP BY cuisine " +
+                "ORDER BY total_reviews DESC";
+
+        return jdbcTemplate.query(sql, filter.getParams(), (rs, rowNum) -> {
+            String cuis = rs.getString("cuisine");
+            long pos = rs.getLong("positive");
+            long neu = rs.getLong("neutral");
+            long neg = rs.getLong("negative");
+            return new com.foodanalytics.dto.CuisineSentimentResponse(cuis, pos, neu, neg);
+        });
+    }
 }

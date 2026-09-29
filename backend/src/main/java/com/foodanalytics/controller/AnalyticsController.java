@@ -152,4 +152,64 @@ public class AnalyticsController {
     public com.foodanalytics.dto.CustomerSegmentsResponse customerSegments() {
         return analyticsRepository.getCustomerSegments();
     }
+
+    /**
+     * GET /api/sentiment/summary -> [{"sentiment":"","count":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/sentiment/summary")
+    public java.util.List<com.foodanalytics.dto.SentimentSummaryResponse> sentimentSummary(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getSentimentSummary(start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/sentiment/stats -> {"totalReviews":0,"percentPositive":0,"avgRating":0}
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/sentiment/stats")
+    public com.foodanalytics.dto.SentimentStatsResponse sentimentStats(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getSentimentStats(start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/sentiment/by-restaurant -> [{"restaurant":"","positive":0,"neutral":0,"negative":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant. Top 10 by review count.
+     */
+    @GetMapping("/sentiment/by-restaurant")
+    public java.util.List<com.foodanalytics.dto.RestaurantSentimentResponse> sentimentByRestaurant(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getSentimentByRestaurant(start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/sentiment/by-cuisine -> [{"cuisine":"","positive":0,"neutral":0,"negative":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/sentiment/by-cuisine")
+    public java.util.List<com.foodanalytics.dto.CuisineSentimentResponse> sentimentByCuisine(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getSentimentByCuisine(start, end, city, cuisine, restaurant);
+    }
 }

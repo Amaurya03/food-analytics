@@ -3,39 +3,462 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Reviews | Food Analytics</title>
+  <title>Reviews & Sentiment | Food Analytics</title>
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <!-- Navigation Bar Container -->
   <div id="navbar-container"></div>
 
-  <main class="container-fluid px-lg-4 py-5 flex-grow-1">
-    <div class="empty-state py-5 my-5">
-      <div class="empty-icon text-primary">
-        <i class="bi bi-chat-heart"></i>
+  <!-- Main Container -->
+  <main class="container-fluid px-lg-4 py-4 flex-grow-1">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Customer Reviews & Sentiment Intelligence</h1>
+        <p class="text-muted small mb-0">Natural language processing sentiment polarity, rating averages, and satisfaction breakdowns</p>
       </div>
-      <h2 class="fw-bold mb-2">Reviews</h2>
-      <p class="text-muted fs-5 mb-0">Coming soon</p>
+    </div>
+
+    <!-- Error Alert Container -->
+    <div id="error-container"></div>
+
+    <!-- Filter Bar Container -->
+    <div id="filter-container"></div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loading-spinner" class="loading-overlay d-none">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading review sentiment...</span>
+      </div>
+      <p class="mt-3 fw-medium">Analyzing review sentiment...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state d-none">
+      <div class="empty-icon">
+        <i class="bi bi-chat-square-text"></i>
+      </div>
+      <h4 class="fw-bold">No reviews found</h4>
+      <p class="text-muted mb-0">No customer reviews match your selected filter criteria. Try expanding your date range or resetting filters.</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-content">
+
+      <!-- KPI Cards Row -->
+      <div class="row g-3 mb-4">
+        <!-- Total Reviews -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Reviews</span>
+              <div class="kpi-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <i class="bi bi-chat-left-text-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-reviews">-</div>
+            <div class="kpi-subtext">Verified customer feedback records</div>
+          </div>
+        </div>
+
+        <!-- % Positive -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Positive Sentiment</span>
+              <div class="kpi-icon" style="background-color: var(--success-light); color: var(--success);">
+                <i class="bi bi-emoji-smile-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-value text-success" id="kpi-positive-pct">-</div>
+            <div class="kpi-subtext">Polarity score &gt; 0.1</div>
+          </div>
+        </div>
+
+        <!-- Average Rating -->
+        <div class="col-12 col-md-4">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Average Rating</span>
+              <div class="kpi-icon" style="background-color: var(--warning-light); color: var(--warning);">
+                <i class="bi bi-star-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-value text-warning" id="kpi-avg-rating">-</div>
+            <div class="kpi-subtext">Mean customer score out of 5.0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 1: Overall Sentiment Pie & Sentiment by Cuisine Stacked Bar -->
+      <div class="row g-4 mb-4">
+        <!-- Pie Chart: Overall Sentiment -->
+        <div class="col-12 col-xl-5">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Overall Sentiment Breakdown</h2>
+                <span class="text-muted small">Distribution of positive, neutral, and negative reviews</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 350px;">
+              <canvas id="sentimentPieChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- 100% Stacked Bar: Sentiment by Cuisine -->
+        <div class="col-12 col-xl-7">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Sentiment by Cuisine (100% Stacked)</h2>
+                <span class="text-muted small">Relative satisfaction profile across food categories</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 350px;">
+              <canvas id="cuisineSentimentChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Sentiment by Restaurant (Top 10 by review count) -->
+      <div class="row">
+        <div class="col-12">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Sentiment by Top 10 Restaurants (100% Stacked)</h2>
+                <span class="text-muted small">Customer reception across leading restaurants by total review volume</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 380px;">
+              <canvas id="restaurantSentimentChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <!-- Footer -->
   <footer class="text-center">
     <div class="container-fluid px-4">
       <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
     </div>
   </footer>
 
+  <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Common Application JS -->
   <script src="js/common.js"></script>
+
+  <!-- Page Specific Logic -->
   <script>
+    let sentimentPieChartInstance = null;
+    let cuisineSentimentChartInstance = null;
+    let restaurantSentimentChartInstance = null;
+
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('reviews.html');
+      renderFilterBar(() => loadReviewsData());
+      loadReviewsData();
     });
+
+    async function loadReviewsData() {
+      const spinner = document.getElementById('loading-spinner');
+      const content = document.getElementById('dashboard-content');
+      const emptyState = document.getElementById('empty-state');
+
+      spinner.classList.remove('d-none');
+      emptyState.classList.add('d-none');
+
+      try {
+        const query = buildQuery();
+        const [stats, summary, cuisineSentiment, restaurantSentiment] = await Promise.all([
+          api(`/api/sentiment/stats${query}`),
+          api(`/api/sentiment/summary${query}`),
+          api(`/api/sentiment/by-cuisine${query}`),
+          api(`/api/sentiment/by-restaurant${query}`)
+        ]);
+
+        spinner.classList.add('d-none');
+
+        if (!stats || stats.totalReviews === 0) {
+          content.classList.add('d-none');
+          emptyState.classList.remove('d-none');
+          return;
+        }
+
+        content.classList.remove('d-none');
+
+        // Render KPI Cards
+        document.getElementById('kpi-reviews').textContent = formatNumber(stats.totalReviews);
+        document.getElementById('kpi-positive-pct').textContent = `${stats.percentPositive}%`;
+        document.getElementById('kpi-avg-rating').textContent = `${stats.avgRating.toFixed(2)} / 5.0`;
+
+        // Render Charts
+        renderSentimentPieChart(summary);
+        renderCuisineSentimentChart(cuisineSentiment);
+        renderRestaurantSentimentChart(restaurantSentiment);
+
+      } catch (err) {
+        spinner.classList.add('d-none');
+        console.error('Failed to load reviews data', err);
+      }
+    }
+
+    /**
+     * Pie Chart for Positive, Neutral, Negative sentiment
+     * Green (#10b981), Grey (#94a3b8), Red (#ef4444)
+     */
+    function renderSentimentPieChart(summary) {
+      if (!summary) return;
+
+      const orderMap = { 'positive': 0, 'neutral': 1, 'negative': 2 };
+      const sorted = [...summary].sort((a, b) => orderMap[a.sentiment] - orderMap[b.sentiment]);
+
+      const labels = sorted.map(s => s.sentiment.charAt(0).toUpperCase() + s.sentiment.slice(1));
+      const counts = sorted.map(s => s.count);
+      const total = counts.reduce((a, b) => a + b, 0);
+
+      const colorMap = {
+        'Positive': '#10b981', // green
+        'Neutral': '#94a3b8',  // grey
+        'Negative': '#ef4444'  // red
+      };
+      const bgColors = labels.map(l => colorMap[l] || '#cbd5e1');
+
+      const ctx = document.getElementById('sentimentPieChart').getContext('2d');
+      if (sentimentPieChartInstance) {
+        sentimentPieChartInstance.destroy();
+      }
+
+      sentimentPieChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: counts,
+            backgroundColor: bgColors,
+            borderColor: '#ffffff',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                boxWidth: 14,
+                boxHeight: 14,
+                padding: 16
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed;
+                  const pct = total > 0 ? ((val / total) * 100).toFixed(1) : 0;
+                  return ` ${ctx.label}: ${formatNumber(val)} (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * 100% Stacked Bar Chart for Sentiment by Cuisine
+     */
+    function renderCuisineSentimentChart(cuisineData) {
+      if (!cuisineData || cuisineData.length === 0) return;
+
+      const labels = cuisineData.map(c => c.cuisine);
+      const rawPos = cuisineData.map(c => c.positive);
+      const rawNeu = cuisineData.map(c => c.neutral);
+      const rawNeg = cuisineData.map(c => c.negative);
+      const totals = cuisineData.map(c => c.positive + c.neutral + c.negative);
+
+      // Normalize to 100%
+      const posPct = totals.map((tot, i) => tot > 0 ? (rawPos[i] / tot) * 100 : 0);
+      const neuPct = totals.map((tot, i) => tot > 0 ? (rawNeu[i] / tot) * 100 : 0);
+      const negPct = totals.map((tot, i) => tot > 0 ? (rawNeg[i] / tot) * 100 : 0);
+
+      const ctx = document.getElementById('cuisineSentimentChart').getContext('2d');
+      if (cuisineSentimentChartInstance) {
+        cuisineSentimentChartInstance.destroy();
+      }
+
+      cuisineSentimentChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Positive',
+              data: posPct,
+              backgroundColor: '#10b981',
+              rawCounts: rawPos
+            },
+            {
+              label: 'Neutral',
+              data: neuPct,
+              backgroundColor: '#94a3b8',
+              rawCounts: rawNeu
+            },
+            {
+              label: 'Negative',
+              data: negPct,
+              backgroundColor: '#ef4444',
+              rawCounts: rawNeg
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 12, boxHeight: 12, padding: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const ds = ctx.dataset;
+                  const raw = ds.rawCounts[ctx.dataIndex];
+                  const pct = ctx.parsed.y.toFixed(1);
+                  return ` ${ds.label}: ${pct}% (${formatNumber(raw)} reviews)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              stacked: true,
+              beginAtZero: true,
+              max: 100,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => `${val}%`
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * 100% Stacked Horizontal Bar Chart for Sentiment by Restaurant (Top 10)
+     */
+    function renderRestaurantSentimentChart(restaurantData) {
+      if (!restaurantData || restaurantData.length === 0) return;
+
+      const labels = restaurantData.map(r => r.restaurant);
+      const rawPos = restaurantData.map(r => r.positive);
+      const rawNeu = restaurantData.map(r => r.neutral);
+      const rawNeg = restaurantData.map(r => r.negative);
+      const totals = restaurantData.map(r => r.positive + r.neutral + r.negative);
+
+      // Normalize to 100%
+      const posPct = totals.map((tot, i) => tot > 0 ? (rawPos[i] / tot) * 100 : 0);
+      const neuPct = totals.map((tot, i) => tot > 0 ? (rawNeu[i] / tot) * 100 : 0);
+      const negPct = totals.map((tot, i) => tot > 0 ? (rawNeg[i] / tot) * 100 : 0);
+
+      const ctx = document.getElementById('restaurantSentimentChart').getContext('2d');
+      if (restaurantSentimentChartInstance) {
+        restaurantSentimentChartInstance.destroy();
+      }
+
+      restaurantSentimentChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Positive',
+              data: posPct,
+              backgroundColor: '#10b981',
+              rawCounts: rawPos
+            },
+            {
+              label: 'Neutral',
+              data: neuPct,
+              backgroundColor: '#94a3b8',
+              rawCounts: rawNeu
+            },
+            {
+              label: 'Negative',
+              data: negPct,
+              backgroundColor: '#ef4444',
+              rawCounts: rawNeg
+            }
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { boxWidth: 12, boxHeight: 12, padding: 12 }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const ds = ctx.dataset;
+                  const raw = ds.rawCounts[ctx.dataIndex];
+                  const pct = ctx.parsed.x.toFixed(1);
+                  return ` ${ds.label}: ${pct}% (${formatNumber(raw)} reviews)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              stacked: true,
+              beginAtZero: true,
+              max: 100,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => `${val}%`
+              }
+            },
+            y: {
+              stacked: true,
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
   </script>
 </body>
 </html>
