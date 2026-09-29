@@ -4,38 +4,503 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restaurants & Regions | Food Analytics</title>
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom CSS -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <!-- Navigation Bar Container -->
   <div id="navbar-container"></div>
 
-  <main class="container-fluid px-lg-4 py-5 flex-grow-1">
-    <div class="empty-state py-5 my-5">
-      <div class="empty-icon text-primary">
-        <i class="bi bi-shop-window"></i>
+  <!-- Main Container -->
+  <main class="container-fluid px-lg-4 py-4 flex-grow-1">
+
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Restaurants & Regional Performance</h1>
+        <p class="text-muted small mb-0">Merchant rankings, geographic sales distribution, and cuisine preferences</p>
       </div>
-      <h2 class="fw-bold mb-2">Restaurants & Regions</h2>
-      <p class="text-muted fs-5 mb-0">Coming soon</p>
+    </div>
+
+    <!-- Error Alert Container -->
+    <div id="error-container"></div>
+
+    <!-- Filter Bar Container -->
+    <div id="filter-container"></div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loading-spinner" class="loading-overlay d-none">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading restaurant data...</span>
+      </div>
+      <p class="mt-3 fw-medium">Loading restaurant & regional analytics...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state d-none">
+      <div class="empty-icon">
+        <i class="bi bi-inbox"></i>
+      </div>
+      <h4 class="fw-bold">No restaurant data found</h4>
+      <p class="text-muted mb-0">No records match your selected filter criteria. Try adjusting dates or resetting filters.</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-content">
+
+      <!-- Row 1: Top 10 Restaurants & Popular Cuisines -->
+      <div class="row g-4 mb-4">
+        <!-- Top 10 Restaurants (Horizontal Bar Chart) -->
+        <div class="col-12 col-xl-7">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Top 10 Restaurants</h2>
+                <span class="text-muted small">Leading food merchants by performance</span>
+              </div>
+              <div class="btn-group btn-group-toggle" role="group">
+                <button type="button" class="btn btn-outline-primary btn-sm active" id="btn-metric-revenue" onclick="setRestaurantMetric('revenue')">Revenue</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btn-metric-orders" onclick="setRestaurantMetric('orders')">Orders</button>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 360px;">
+              <canvas id="topRestaurantsChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Popular Cuisines Doughnut Chart -->
+        <div class="col-12 col-xl-5">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Popular Cuisines</h2>
+                <span class="text-muted small">Top 8 cuisines ordered</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 360px;">
+              <canvas id="cuisinesChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Regional Distribution (City Orders & City Revenue) -->
+      <div class="row g-4 mb-4">
+        <!-- Orders by City -->
+        <div class="col-12 col-lg-6">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Orders by City</h2>
+                <span class="text-muted small">Order volume across regions</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 320px;">
+              <canvas id="cityOrdersChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Revenue by City -->
+        <div class="col-12 col-lg-6">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Revenue by City</h2>
+                <span class="text-muted small">Gross revenue across regions (INR)</span>
+              </div>
+            </div>
+            <div class="chart-container" style="height: 320px;">
+              <canvas id="cityRevenueChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Top 10 Restaurants Table -->
+      <div class="row mb-2">
+        <div class="col-12">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Top 10 Restaurants Performance Table</h2>
+                <span class="text-muted small">Detailed order count and revenue contribution</span>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" style="width: 70px;">Rank</th>
+                    <th scope="col">Restaurant Name</th>
+                    <th scope="col" class="text-end">Orders</th>
+                    <th scope="col" class="text-end">Total Revenue</th>
+                    <th scope="col" class="text-end">Avg Ticket</th>
+                  </tr>
+                </thead>
+                <tbody id="top-restaurants-tbody">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </main>
 
+  <!-- Footer -->
   <footer class="text-center">
     <div class="container-fluid px-4">
       <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
     </div>
   </footer>
 
+  <!-- Bootstrap 5 JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Common Application JS -->
   <script src="js/common.js"></script>
+
+  <!-- Page Specific Logic -->
   <script>
+    let currentRestaurantMetric = 'revenue';
+    let cachedRestaurantsData = [];
+
+    // Chart instances
+    let topRestaurantsChartInstance = null;
+    let cuisinesChartInstance = null;
+    let cityOrdersChartInstance = null;
+    let cityRevenueChartInstance = null;
+
     document.addEventListener('DOMContentLoaded', () => {
       renderNav('restaurants.html');
+      renderFilterBar(() => loadRestaurantsData());
+      loadRestaurantsData();
     });
+
+    function setRestaurantMetric(metric) {
+      if (currentRestaurantMetric === metric) return;
+      currentRestaurantMetric = metric;
+
+      document.getElementById('btn-metric-revenue').classList.toggle('active', metric === 'revenue');
+      document.getElementById('btn-metric-orders').classList.toggle('active', metric === 'orders');
+
+      renderTopRestaurantsChart(cachedRestaurantsData);
+    }
+
+    async function loadRestaurantsData() {
+      const spinner = document.getElementById('loading-spinner');
+      const content = document.getElementById('dashboard-content');
+      const emptyState = document.getElementById('empty-state');
+
+      spinner.classList.remove('d-none');
+      emptyState.classList.add('d-none');
+
+      try {
+        const query = buildQuery();
+        const [topRestaurants, regions, cuisines] = await Promise.all([
+          api(`/api/restaurants/top${buildQuery({ limit: 10 })}`),
+          api(`/api/regions${query}`),
+          api(`/api/cuisines${query}`)
+        ]);
+
+        spinner.classList.add('d-none');
+
+        // Check if there is data
+        if (!topRestaurants || topRestaurants.length === 0) {
+          content.classList.add('d-none');
+          emptyState.classList.remove('d-none');
+          return;
+        }
+
+        content.classList.remove('d-none');
+        cachedRestaurantsData = topRestaurants;
+
+        // Render all charts and table
+        renderTopRestaurantsChart(topRestaurants);
+        renderCuisinesChart(cuisines);
+        renderCityCharts(regions);
+        renderTopRestaurantsTable(topRestaurants);
+
+      } catch (err) {
+        spinner.classList.add('d-none');
+        console.error('Failed to load restaurants page data', err);
+      }
+    }
+
+    /**
+     * Horizontal Bar Chart for Top 10 Restaurants (Revenue or Orders)
+     */
+    function renderTopRestaurantsChart(data) {
+      if (!data || data.length === 0) return;
+
+      // Sort data according to current metric
+      const sorted = [...data].sort((a, b) => {
+        return currentRestaurantMetric === 'revenue'
+          ? b.revenue - a.revenue
+          : b.orders - a.orders;
+      });
+
+      const labels = sorted.map(d => d.restaurant);
+      const values = sorted.map(d => currentRestaurantMetric === 'revenue' ? d.revenue : d.orders);
+
+      const ctx = document.getElementById('topRestaurantsChart').getContext('2d');
+      if (topRestaurantsChartInstance) {
+        topRestaurantsChartInstance.destroy();
+      }
+
+      topRestaurantsChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: currentRestaurantMetric === 'revenue' ? 'Revenue (INR)' : 'Orders',
+            data: values,
+            backgroundColor: currentRestaurantMetric === 'revenue' ? '#4f46e5' : '#06b6d4',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed.x;
+                  return currentRestaurantMetric === 'revenue'
+                    ? ` Revenue: ${formatCurrency(val)}`
+                    : ` Orders: ${formatNumber(val)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatCompactNumber(val)
+              }
+            },
+            y: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * Doughnut Chart for Popular Cuisines (Top 8 by orders)
+     */
+    function renderCuisinesChart(cuisines) {
+      if (!cuisines || cuisines.length === 0) return;
+
+      // Sort by orders descending and take top 8
+      const top8 = [...cuisines].sort((a, b) => b.orders - a.orders).slice(0, 8);
+      const labels = top8.map(c => c.cuisine);
+      const data = top8.map(c => c.orders);
+      const totalOrders = data.reduce((sum, val) => sum + val, 0);
+
+      const palette = [
+        '#4f46e5', '#06b6d4', '#10b981', '#f59e0b',
+        '#ec4899', '#8b5cf6', '#14b8a6', '#f97316'
+      ];
+
+      const ctx = document.getElementById('cuisinesChart').getContext('2d');
+      if (cuisinesChartInstance) {
+        cuisinesChartInstance.destroy();
+      }
+
+      cuisinesChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: palette.slice(0, labels.length),
+            borderWidth: 2,
+            borderColor: '#ffffff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '62%',
+          plugins: {
+            legend: {
+              position: 'right',
+              labels: {
+                boxWidth: 12,
+                boxHeight: 12,
+                font: { size: 11 },
+                padding: 12
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => {
+                  const val = ctx.parsed;
+                  const pct = totalOrders > 0 ? ((val / totalOrders) * 100).toFixed(1) : 0;
+                  return ` ${ctx.label}: ${formatNumber(val)} orders (${pct}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * Bar Charts for City Orders & City Revenue
+     */
+    function renderCityCharts(regions) {
+      if (!regions || regions.length === 0) return;
+
+      // City Orders (sorted by orders desc)
+      const sortedByOrders = [...regions].sort((a, b) => b.orders - a.orders);
+      const orderLabels = sortedByOrders.map(r => r.city);
+      const orderValues = sortedByOrders.map(r => r.orders);
+
+      const ctxOrders = document.getElementById('cityOrdersChart').getContext('2d');
+      if (cityOrdersChartInstance) {
+        cityOrdersChartInstance.destroy();
+      }
+
+      cityOrdersChartInstance = new Chart(ctxOrders, {
+        type: 'bar',
+        data: {
+          labels: orderLabels,
+          datasets: [{
+            label: 'Orders',
+            data: orderValues,
+            backgroundColor: '#0284c7',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Orders: ${formatNumber(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatCompactNumber(val)
+              }
+            }
+          }
+        }
+      });
+
+      // City Revenue (sorted by revenue desc)
+      const sortedByRevenue = [...regions].sort((a, b) => b.revenue - a.revenue);
+      const revenueLabels = sortedByRevenue.map(r => r.city);
+      const revenueValues = sortedByRevenue.map(r => r.revenue);
+
+      const ctxRevenue = document.getElementById('cityRevenueChart').getContext('2d');
+      if (cityRevenueChartInstance) {
+        cityRevenueChartInstance.destroy();
+      }
+
+      cityRevenueChartInstance = new Chart(ctxRevenue, {
+        type: 'bar',
+        data: {
+          labels: revenueLabels,
+          datasets: [{
+            label: 'Revenue (INR)',
+            data: revenueValues,
+            backgroundColor: '#10b981',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Revenue: ${formatCurrency(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatCompactNumber(val)
+              }
+            }
+          }
+        }
+      });
+    }
+
+    /**
+     * Renders small Top 10 Restaurants table
+     */
+    function renderTopRestaurantsTable(restaurants) {
+      const tbody = document.getElementById('top-restaurants-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = restaurants.map((r, index) => {
+        const rank = index + 1;
+        let badgeClass = 'bg-secondary';
+        if (rank === 1) badgeClass = 'bg-warning text-dark';
+        else if (rank === 2) badgeClass = 'bg-secondary-subtle text-secondary-emphasis';
+        else if (rank === 3) badgeClass = 'bg-primary-subtle text-primary';
+
+        const avgTicket = r.orders > 0 ? (r.revenue / r.orders) : 0;
+
+        return `
+          <tr>
+            <td><span class="badge rounded-pill ${badgeClass} px-2 py-1">#${rank}</span></td>
+            <td class="fw-semibold">${escapeHtml(r.restaurant)}</td>
+            <td class="text-end">${formatNumber(r.orders)}</td>
+            <td class="text-end fw-bold text-dark">${formatCurrency(r.revenue)}</td>
+            <td class="text-end text-muted">${formatCurrency(avgTicket)}</td>
+          </tr>
+        `;
+      }).join('');
+    }
   </script>
 </body>
 </html>

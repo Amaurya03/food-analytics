@@ -67,4 +67,50 @@ public class AnalyticsController {
     ) {
         return analyticsRepository.getTrend(granularity, start, end, city, cuisine, restaurant);
     }
+
+    /**
+     * GET /api/restaurants/top?limit=10 -> [{"restaurant":"","orders":0,"revenue":0}]
+     * Filter-aware with optional query parameters: limit, start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/restaurants/top")
+    public java.util.List<com.foodanalytics.dto.RestaurantResponse> topRestaurants(
+            @RequestParam(name = "limit", defaultValue = "10") int limit,
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getTopRestaurants(limit, start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/regions -> [{"city":"","orders":0,"revenue":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/regions")
+    public java.util.List<com.foodanalytics.dto.RegionResponse> regions(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getRegions(start, end, city, cuisine, restaurant);
+    }
+
+    /**
+     * GET /api/cuisines -> [{"cuisine":"","orders":0,"revenue":0}]
+     * Filter-aware with optional query parameters: start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/cuisines")
+    public java.util.List<com.foodanalytics.dto.CuisineResponse> cuisines(
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getCuisines(start, end, city, cuisine, restaurant);
+    }
 }

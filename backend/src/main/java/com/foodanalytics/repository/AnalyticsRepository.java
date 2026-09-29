@@ -122,4 +122,88 @@ public class AnalyticsRepository {
             return new com.foodanalytics.dto.TrendResponse(period, orders, revenue);
         });
     }
+
+    /**
+     * Retrieves top restaurants ordered by revenue descending, filter-aware.
+     */
+    public List<com.foodanalytics.dto.RestaurantResponse> getTopRestaurants(
+            int limit, String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+        Map<String, Object> params = new java.util.HashMap<>(filter.getParams());
+        params.put("limit", Math.max(1, limit));
+
+        String sql = "SELECT " +
+                "restaurant, " +
+                "COUNT(*) AS orders, " +
+                "COALESCE(SUM(order_value), 0.0) AS revenue " +
+                "FROM orders" + filter.getWhereClause() + " " +
+                "GROUP BY restaurant " +
+                "ORDER BY revenue DESC " +
+                "LIMIT :limit";
+
+        return jdbcTemplate.query(sql, params, (rs, rowNum) -> {
+            String rest = rs.getString("restaurant");
+            long orders = rs.getLong("orders");
+            double rawRevenue = rs.getDouble("revenue");
+            double revenue = BigDecimal.valueOf(rawRevenue)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+            return new com.foodanalytics.dto.RestaurantResponse(rest, orders, revenue);
+        });
+    }
+
+    /**
+     * Retrieves order and revenue metrics grouped by city ordered by revenue descending, filter-aware.
+     */
+    public List<com.foodanalytics.dto.RegionResponse> getRegions(
+            String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+
+        String sql = "SELECT " +
+                "city, " +
+                "COUNT(*) AS orders, " +
+                "COALESCE(SUM(order_value), 0.0) AS revenue " +
+                "FROM orders" + filter.getWhereClause() + " " +
+                "GROUP BY city " +
+                "ORDER BY revenue DESC";
+
+        return jdbcTemplate.query(sql, filter.getParams(), (rs, rowNum) -> {
+            String c = rs.getString("city");
+            long orders = rs.getLong("orders");
+            double rawRevenue = rs.getDouble("revenue");
+            double revenue = BigDecimal.valueOf(rawRevenue)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+            return new com.foodanalytics.dto.RegionResponse(c, orders, revenue);
+        });
+    }
+
+    /**
+     * Retrieves order and revenue metrics grouped by cuisine ordered by revenue descending, filter-aware.
+     */
+    public List<com.foodanalytics.dto.CuisineResponse> getCuisines(
+            String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+
+        String sql = "SELECT " +
+                "cuisine, " +
+                "COUNT(*) AS orders, " +
+                "COALESCE(SUM(order_value), 0.0) AS revenue " +
+                "FROM orders" + filter.getWhereClause() + " " +
+                "GROUP BY cuisine " +
+                "ORDER BY revenue DESC";
+
+        return jdbcTemplate.query(sql, filter.getParams(), (rs, rowNum) -> {
+            String cuis = rs.getString("cuisine");
+            long orders = rs.getLong("orders");
+            double rawRevenue = rs.getDouble("revenue");
+            double revenue = BigDecimal.valueOf(rawRevenue)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+            return new com.foodanalytics.dto.CuisineResponse(cuis, orders, revenue);
+        });
+    }
 }
