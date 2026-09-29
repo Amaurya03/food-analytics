@@ -90,4 +90,36 @@ public class AnalyticsRepository {
             return new KpiResponse(totalOrders, totalRevenue, avgOrderValue, totalCustomers);
         });
     }
+
+    /**
+     * Retrieves trend data grouped by month or week, filter-aware.
+     */
+    public List<com.foodanalytics.dto.TrendResponse> getTrend(
+            String granularity, String start, String end, String city, String cuisine, String restaurant
+    ) {
+        QueryFilterHelper.FilterResult filter = QueryFilterHelper.build(start, end, city, cuisine, restaurant);
+
+        boolean isWeek = "week".equalsIgnoreCase(granularity);
+        String periodExpression = isWeek
+                ? "DATE_FORMAT(order_date, '%x-W%v')"
+                : "DATE_FORMAT(order_date, '%Y-%m')";
+
+        String sql = "SELECT " +
+                periodExpression + " AS period, " +
+                "COUNT(*) AS orders, " +
+                "COALESCE(SUM(order_value), 0.0) AS revenue " +
+                "FROM orders" + filter.getWhereClause() + " " +
+                "GROUP BY period " +
+                "ORDER BY period ASC";
+
+        return jdbcTemplate.query(sql, filter.getParams(), (rs, rowNum) -> {
+            String period = rs.getString("period");
+            long orders = rs.getLong("orders");
+            double rawRevenue = rs.getDouble("revenue");
+            double revenue = BigDecimal.valueOf(rawRevenue)
+                    .setScale(2, RoundingMode.HALF_UP)
+                    .doubleValue();
+            return new com.foodanalytics.dto.TrendResponse(period, orders, revenue);
+        });
+    }
 }

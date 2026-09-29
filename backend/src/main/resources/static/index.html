@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overview | Food Delivery & Customer Analytics System</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Navigation Bar Container -->
+  <div id="navbar-container"></div>
+
+  <!-- Main Container -->
+  <main class="container-fluid px-lg-4 py-4 flex-grow-1">
+
+    <!-- Header & Filter Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Executive Overview</h1>
+        <p class="text-muted small mb-0">High-level sales, performance indicators, and order trend analysis</p>
+      </div>
+    </div>
+
+    <!-- Error Alert Container -->
+    <div id="error-container"></div>
+
+    <!-- Filter Bar Container -->
+    <div id="filter-container"></div>
+
+    <!-- Loading Spinner Overlay -->
+    <div id="loading-spinner" class="loading-overlay d-none">
+      <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">Loading dashboard metrics...</span>
+      </div>
+      <p class="mt-3 fw-medium">Loading analytics data...</p>
+    </div>
+
+    <!-- Empty State -->
+    <div id="empty-state" class="empty-state d-none">
+      <div class="empty-icon">
+        <i class="bi bi-inbox"></i>
+      </div>
+      <h4 class="fw-bold">No data found</h4>
+      <p class="text-muted mb-0">No orders match the selected filters. Try broadening your date range or clearing filter criteria.</p>
+    </div>
+
+    <!-- Dashboard Content -->
+    <div id="dashboard-content">
+
+      <!-- KPI Cards Row -->
+      <div class="row g-3 mb-4">
+        <!-- Total Orders -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Orders</span>
+              <div class="kpi-icon" style="background-color: var(--primary-light); color: var(--primary);">
+                <i class="bi bi-bag-check-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-orders">-</div>
+            <div class="kpi-subtext" id="kpi-orders-sub">Cumulative order count</div>
+          </div>
+        </div>
+
+        <!-- Total Revenue -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Revenue</span>
+              <div class="kpi-icon" style="background-color: var(--success-light); color: var(--success);">
+                <i class="bi bi-currency-rupee"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-revenue">-</div>
+            <div class="kpi-subtext" id="kpi-revenue-sub">Gross merchandise value</div>
+          </div>
+        </div>
+
+        <!-- Average Order Value -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Avg Order Value</span>
+              <div class="kpi-icon" style="background-color: var(--info-light); color: var(--info);">
+                <i class="bi bi-graph-up-arrow"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-aov">-</div>
+            <div class="kpi-subtext">Average spend per ticket</div>
+          </div>
+        </div>
+
+        <!-- Total Customers -->
+        <div class="col-12 col-sm-6 col-xl-3">
+          <div class="kpi-card">
+            <div class="kpi-header">
+              <span class="kpi-title">Total Customers</span>
+              <div class="kpi-icon" style="background-color: var(--warning-light); color: var(--warning);">
+                <i class="bi bi-people-fill"></i>
+              </div>
+            </div>
+            <div class="kpi-value" id="kpi-customers">-</div>
+            <div class="kpi-subtext">Unique transacting patrons</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trend Charts Row -->
+      <div class="row g-4">
+        <!-- Revenue Trend Line Chart -->
+        <div class="col-12 col-lg-7">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Revenue Trend</h2>
+                <span class="text-muted small">Periodic revenue performance (INR)</span>
+              </div>
+              <div class="btn-group btn-group-toggle" role="group">
+                <button type="button" class="btn btn-outline-primary btn-sm active" id="btn-granularity-month" onclick="setGranularity('month')">Month</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" id="btn-granularity-week" onclick="setGranularity('week')">Week</button>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="revenueChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Volume Bar Chart -->
+        <div class="col-12 col-lg-5">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h2 class="chart-title">Order Volume</h2>
+                <span class="text-muted small">Total completed orders</span>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="ordersChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center">
+    <div class="container-fluid px-4">
+      <span>Food Delivery & Customer Analytics System &bull; Enterprise Operations</span>
+    </div>
+  </footer>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js 4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <!-- Common Application JS -->
+  <script src="js/common.js"></script>
+
+  <!-- Page Specific Logic -->
+  <script>
+    let currentGranularity = 'month';
+    let revenueChartInstance = null;
+    let ordersChartInstance = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderNav('index.html');
+      renderFilterBar(() => loadDashboardData());
+      loadDashboardData();
+    });
+
+    function setGranularity(granularity) {
+      if (currentGranularity === granularity) return;
+      currentGranularity = granularity;
+
+      document.getElementById('btn-granularity-month').classList.toggle('active', granularity === 'month');
+      document.getElementById('btn-granularity-week').classList.toggle('active', granularity === 'week');
+
+      loadTrendData();
+    }
+
+    async function loadDashboardData() {
+      const spinner = document.getElementById('loading-spinner');
+      const content = document.getElementById('dashboard-content');
+      const emptyState = document.getElementById('empty-state');
+
+      spinner.classList.remove('d-none');
+      emptyState.classList.add('d-none');
+
+      try {
+        const query = buildQuery();
+        const [kpiData, trendData] = await Promise.all([
+          api(`/api/kpis${query}`),
+          api(`/api/trend${buildQuery({ granularity: currentGranularity })}`)
+        ]);
+
+        spinner.classList.add('d-none');
+
+        // Check if there are orders
+        if (!kpiData || kpiData.totalOrders === 0) {
+          content.classList.add('d-none');
+          emptyState.classList.remove('d-none');
+          return;
+        }
+
+        content.classList.remove('d-none');
+
+        // Render KPIs
+        document.getElementById('kpi-orders').textContent = formatNumber(kpiData.totalOrders);
+        document.getElementById('kpi-revenue').textContent = formatCurrency(kpiData.totalRevenue);
+        document.getElementById('kpi-aov').textContent = formatCurrency(kpiData.avgOrderValue);
+        document.getElementById('kpi-customers').textContent = formatNumber(kpiData.totalCustomers);
+
+        // Render Charts
+        renderCharts(trendData);
+      } catch (err) {
+        spinner.classList.add('d-none');
+        console.error('Failed to load dashboard data', err);
+      }
+    }
+
+    async function loadTrendData() {
+      try {
+        const trendData = await api(`/api/trend${buildQuery({ granularity: currentGranularity })}`);
+        renderCharts(trendData);
+      } catch (err) {
+        console.error('Failed to load trend data', err);
+      }
+    }
+
+    function renderCharts(trendData) {
+      if (!trendData || trendData.length === 0) return;
+
+      const labels = trendData.map(d => d.period);
+      const revenues = trendData.map(d => d.revenue);
+      const orders = trendData.map(d => d.orders);
+
+      // 1. Revenue Line Chart
+      const ctxRevenue = document.getElementById('revenueChart').getContext('2d');
+      if (revenueChartInstance) {
+        revenueChartInstance.destroy();
+      }
+
+      revenueChartInstance = new Chart(ctxRevenue, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Revenue (INR)',
+            data: revenues,
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.08)',
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#4f46e5',
+            pointRadius: labels.length > 30 ? 2 : 4,
+            pointHoverRadius: 6,
+            borderWidth: 2.5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Revenue: ${formatCurrency(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { maxRotation: 45, minRotation: 0, font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatCompactNumber(val)
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Orders Bar Chart
+      const ctxOrders = document.getElementById('ordersChart').getContext('2d');
+      if (ordersChartInstance) {
+        ordersChartInstance.destroy();
+      }
+
+      ordersChartInstance = new Chart(ctxOrders, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Orders',
+            data: orders,
+            backgroundColor: '#06b6d4',
+            borderRadius: 6,
+            borderSkipped: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => ` Orders: ${formatNumber(ctx.parsed.y)}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { maxRotation: 45, minRotation: 0, font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#f1f5f9' },
+              ticks: {
+                callback: (val) => formatCompactNumber(val)
+              }
+            }
+          }
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -51,4 +51,20 @@ public class AnalyticsController {
     ) {
         return analyticsRepository.getKpis(start, end, city, cuisine, restaurant);
     }
+
+    /**
+     * GET /api/trend?granularity=month|week -> [{"period":"","orders":0,"revenue":0}]
+     * Filter-aware with optional query parameters: granularity, start, end, city, cuisine, restaurant.
+     */
+    @GetMapping("/trend")
+    public java.util.List<com.foodanalytics.dto.TrendResponse> trend(
+            @RequestParam(name = "granularity", defaultValue = "month") String granularity,
+            @RequestParam(name = "start", required = false) String start,
+            @RequestParam(name = "end", required = false) String end,
+            @RequestParam(name = "city", required = false) String city,
+            @RequestParam(name = "cuisine", required = false) String cuisine,
+            @RequestParam(name = "restaurant", required = false) String restaurant
+    ) {
+        return analyticsRepository.getTrend(granularity, start, end, city, cuisine, restaurant);
+    }
 }
